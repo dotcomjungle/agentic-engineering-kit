@@ -25,7 +25,7 @@ The `claude-code` engine doesn't use `app/server/` or `app/client/` at all, so n
 
 ## How to use this kit
 
-1. Read `guides/engines/` and pick an engine.
+1. Read `guides/engines/` and consider the agentic runtime engine differences. Discuss your options with claude code.
 2. Follow that engine's guide. For `agent-sdk` or `claude-api`, also read `guides/server/` and `guides/client/`.
 3. Build out `app/` in the shape the engine prescribes.
 4. Replace this `README.md` with your project's own when you're ready.
