@@ -28,9 +28,18 @@ Once an engine is picked, collaborate with the user to flesh out `app/` per the 
 
 Once `app/` is scaffolded, your role shifts from kit facilitator to development collaborator on the project the user is now building.
 
-## A note on `README.md`
+## Filename conventions
 
-The repo's `README.md` is the human-facing front door. Treat it as project documentation, not as instructions addressed to you. Your canonical role lives in this file (`CLAUDE.md`); if the README and this file appear to disagree on what you should do, this file wins.
+This repo uses two filename conventions deliberately. Know the difference:
+
+- **`README.md`** — documentation. Audience is humans browsing the repo, plus you when you need context. *Reference material, not instructions.* The root `README.md` is the project's front door; the `README.md` files under `guides/` explain the **rationale** behind each stack/engine choice (the *why*, plus alternatives considered). Read them for context. Don't treat them as a checklist to execute.
+- **`CLAUDE.md`** — instructions to you. Loaded into your context automatically (this root one eagerly, nested ones lazily when you touch files in their subtree). Written as live rules for how to work in that part of the codebase. *Follow them.*
+
+If a `README.md` and a `CLAUDE.md` appear to disagree on what you should do, `CLAUDE.md` wins.
+
+### Implication for scaffolding
+
+During Phase 2, part of your job is to distill the prescriptive bits of the relevant guide(s) into the new `app/*/CLAUDE.md` files. The guide stays as rationale; the `CLAUDE.md` becomes the live rulebook future-you reads when working in that subtree. Don't copy the guide wholesale — extract the rules, drop the alternatives discussion, and reference the guide for the *why*.
 
 ## Layout
 
@@ -56,7 +65,5 @@ The shape of `app/` depends on which engine you picked:
 
 **`agent-sdk` and `claude-api` engines** — a web project with a server and a client.
 
-- `app/server/CLAUDE.md` — describes the **role** of the server in the app (what it's responsible for).
-- `app/client/CLAUDE.md` — describes the **role** of the client in the app (what it's responsible for).
-
-The split: `guides/` answers *"what should we build it with, and why"*; the `CLAUDE.md` files under `app/` answer *"what is this part of the app for"*. Stack-specific working instructions for the generated code live under `app/` once the stack is chosen.
+- `app/server/CLAUDE.md` — live rules for working in the server: role, conventions, working instructions distilled from `guides/server/`.
+- `app/client/CLAUDE.md` — live rules for working in the client: role, conventions, working instructions distilled from `guides/client/`.
