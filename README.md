@@ -34,4 +34,4 @@ This kit assumes you're working with Claude Code. The bulk of the setup is a dia
 
 ## Layout
 
-`CLAUDE.md` at the repo root has the canonical directory layout and is what Claude Code reads when working in this repo.
+`CLAUDE.md` at the repo root has the canonical directory layout and is what Claude Code reads when working in this repo. The setup playbook (engine selection dialogue, scaffolding mechanics, MVP requirements) lives separately in `SCAFFOLDING.md`; Claude reads it conditionally on a fresh clone and ignores it once the project has been scaffolded.
