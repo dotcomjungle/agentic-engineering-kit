@@ -41,9 +41,9 @@ For our shape — a turn arrives over HTTP, runs to completion, persists everyth
 # src/main.py
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.mcp_servers = build_mcp_servers(settings)   # custom tools
-    app.state.agents = build_agent_registry()             # AgentDefinition map
+    app.state.agents = build_agent_registry()   # static AgentDefinition map
     yield
+    # MCP servers are constructed per request — see "Custom MCP tools".
 
 # src/routers/conversations.py
 @router.post("/{conversation_id}/runs")
@@ -65,6 +65,67 @@ async def stream_run(...):
 
 `run_turn` is an async generator that opens the SDK call, iterates the message stream, persists each event, and yields an SSE event with the persisted event's id. Use [`sse-starlette`](https://github.com/sysid/sse-starlette)'s `EventSourceResponse` — it handles client-disconnect detection and heartbeat pings.
 
+```python
+# src/services/agent_runner.py
+from claude_agent_sdk import (
+    query, ClaudeAgentOptions, HookMatcher,
+    AssistantMessage, ToolResultMessage, ResultMessage,
+)
+
+async def run_turn(
+    db, settings, convo, run, user_input, agent_registry, deps,
+) -> AsyncIterator[ServerSentEvent]:
+    options = ClaudeAgentOptions(
+        agents=agent_registry,
+        mcp_servers=[build_knowledge_server(deps)],   # per-request, see Custom MCP tools
+        allowed_tools=["Read", "WebSearch", "mcp__knowledge__lookup_doc"],
+        hooks={"PreToolUse": [HookMatcher(hooks=[auto_approve])]},
+        resume=convo.sdk_session_id,
+        max_turns=settings.AGENT_MAX_TURNS,
+    )
+
+    async def emit(event_type: str, payload: dict) -> ServerSentEvent:
+        row = await persist_event(db, run.id, event_type, payload)
+        return ServerSentEvent(id=str(row.id), event=event_type, data=json.dumps(payload))
+
+    yield await emit("run_start", {"run_id": str(run.id), "agent": run.agent_name})
+    try:
+        async with asyncio.timeout(settings.AGENT_WALL_CLOCK_S):
+            async for msg in query(prompt=user_input, options=options):
+                if await cancel_requested(db, run.id):
+                    run.status = "cancelled"
+                    break
+
+                match msg:
+                    case AssistantMessage():
+                        yield await emit("message", serialize_message(msg))
+                    case ToolResultMessage():
+                        yield await emit("tool_call_result", serialize_tool_result(msg))
+                    case ResultMessage():
+                        run.sdk_session_id = msg.session_id
+                        run.total_cost_usd = msg.total_cost_usd
+                        run.status = "ok"
+                        yield await emit("usage", {"total_cost_usd": msg.total_cost_usd})
+
+                if (run.total_cost_usd or 0) > settings.AGENT_MAX_COST_USD:
+                    run.status = "cost_capped"
+                    break
+    except TimeoutError:
+        run.status = "timeout"
+    except Exception as exc:
+        run.status = "error"
+        yield await emit("error", {"code": type(exc).__name__, "message": str(exc), "retriable": False})
+    finally:
+        run.ended_at = datetime.now(UTC)
+        await db.commit()
+        yield await emit("run_end", {"run_id": str(run.id), "status": run.status, "total_cost_usd": run.total_cost_usd})
+```
+
+Two invariants this skeleton enforces:
+
+- **Persist before yield.** `emit` writes `run_events` and only then yields the SSE event with `id=row.id`. The client never sees an event the database doesn't have, so `Last-Event-ID` resume is exact.
+- **`finally` always emits `run_end`.** Whether the loop completes, times out, errors, or is cancelled, the client gets a terminal event and can stop the EventSource cleanly.
+
 ### Why SSE, not WebSockets
 
 - Traffic is one-directional during a run (server → client). User input arrives on a fresh `POST /runs`.
@@ -77,6 +138,18 @@ async def stream_run(...):
 The Python SDK delivers **whole message objects** (`AssistantMessage`, `ToolResultMessage`, `ResultMessage`), not per-block deltas. The SSE event taxonomy below reflects that: `message` events carry full assistant turns, not character-level chunks.
 
 If you need typewriter-style chat output, you have to bypass the SDK and call the underlying Anthropic streaming API directly — at which point you're effectively on the `claude-api` engine. Don't half-way it. The `agent-sdk` engine is fine for chat where messages appear as units, and it's the natural fit for structured task UIs where the user is waiting on a result, not a typing animation.
+
+### Scaling ceiling
+
+The in-process design has a hard ceiling: each in-flight run holds an asyncio task on a uvicorn worker, and each open SSE connection holds another. Concurrent capacity ≈ `workers × per-worker asyncio throughput`, which is finite — and runs are minutes, not milliseconds.
+
+Knobs while you're under that ceiling:
+
+- Set `--workers` to match host CPU; uvicorn isn't built for thousands of long-lived connections.
+- Cap concurrent runs per user at the application layer (rate-limit `POST /runs`).
+- Keep `AGENT_WALL_CLOCK_S` short (see Safety valves).
+
+Migration path when you outgrow it: move SDK invocations to a worker pool (`arq`, `SAQ`, Celery). The HTTP layer doesn't change — `POST /runs` enqueues a job; the SSE handler tails `run_events` from Postgres. Persistence schema and event taxonomy stay identical; only `run_turn`'s host moves out of the request handler. Designing the persistence layer this way from day 1 is *why* this migration is later cheap — not why it's avoidable.
 
 ## Project layout
 
@@ -95,8 +168,8 @@ app/server/src/
       __init__.py        # builds AgentDefinition from prompt + tools
       prompt.md          # system prompt, authored as Markdown
   mcp_tools/
-    __init__.py          # build_mcp_servers(settings) -> list of MCP servers
-    <tool_group>.py      # @tool functions, grouped by domain
+    __init__.py          # exports build_*_server(deps) factories per tool group
+    <tool_group>.py      # @tool functions + build_<group>_server(deps) factory
   models/
     conversation.py      # Conversation, Message, AgentRun, ToolCall, RunEvent
   schemas/
@@ -132,7 +205,7 @@ Subagents are declared the same way and passed via `ClaudeAgentOptions(agents={"
 
 ## Custom MCP tools
 
-Define tools with the SDK's `@tool` decorator and register them on an MCP server with `create_sdk_mcp_server`:
+Define tools with the SDK's `@tool` decorator and register them on an MCP server with `create_sdk_mcp_server`. **MCP servers are constructed per request, not at lifespan**, because tools close over request-scoped resources (`AsyncSession`, `current_user`). Construction is cheap — `create_sdk_mcp_server` is a function call, not a network handshake.
 
 ```python
 # src/mcp_tools/knowledge.py
@@ -183,6 +256,22 @@ options = ClaudeAgentOptions(
 
 Future restrictions (per-user denylists, rate limits, human-in-the-loop) swap the hook body, not the wiring. Persist every approval decision (the `tool_calls` row records the call regardless) so you can replay historical traffic against a stricter policy before rolling it out.
 
+## Safety valves
+
+Three ceilings every run respects, configured in `Settings`:
+
+- **`AGENT_MAX_TURNS`** — hard cap on agent loop iterations. Passed to `ClaudeAgentOptions(max_turns=...)`. Default: 25.
+- **`AGENT_WALL_CLOCK_S`** — wall-clock timeout. `run_turn` wraps the SDK iteration in `asyncio.timeout()`. Default: 180s.
+- **`AGENT_MAX_COST_USD`** — per-run cost ceiling, checked against the running `total_cost_usd` after each `ResultMessage`. Default: $1.00.
+
+When a cap trips, `agent_runs.status` records *which* (`timeout`, `cost_capped`, `turns_exceeded`) so dashboards distinguish runaway loops from expensive-but-legitimate runs. Tune defaults per agent if needed (researcher agents legitimately cost more than a chat concierge), but never leave any of the three uncapped.
+
+### Cancellation
+
+`POST /sessions/{id}/runs/{run_id}/cancel` sets `agent_runs.cancel_requested_at = now()` and returns `202` immediately. `run_turn` polls this column between SDK message iterations and breaks the loop when set, recording `status = 'cancelled'` and emitting `run_end`.
+
+Cooperative because the SDK's `query()` async generator yields at message boundaries — there's no way to interrupt mid-tool-call without killing the worker. Worst-case cancellation latency is the duration of the in-flight tool call. If you need hard cancel, run the SDK in a worker pool (see Scaling ceiling) where you can terminate the job process.
+
 ## Persistence schema
 
 Multi-tenant isolation is by `user_id` on every top-level table, populated from the `current_user` dependency. No row is read or written without a user-scoped query — enforced in `services/`, not `routers/`. Add Postgres RLS later if you want defense in depth.
@@ -191,9 +280,9 @@ Tables (shape only — write the migration yourself):
 
 - **`conversations`** — `id`, `user_id`, `title`, `created_at`, `updated_at`, `metadata jsonb`. Index `(user_id, updated_at desc)`.
 - **`messages`** — `id`, `conversation_id`, `role` (`user` | `assistant` | `system` | `tool`), `content jsonb`, `created_at`. Index `(conversation_id, created_at)`.
-- **`agent_runs`** — one row per SDK invocation. `id`, `conversation_id`, `parent_run_id` (nullable, self-FK for subagents), `agent_name`, `prompt_sha`, `model`, `status`, `started_at`, `ended_at`, `total_cost_usd`, `sdk_session_id` (for resume). Index `(conversation_id, started_at)` and `(parent_run_id)`.
+- **`agent_runs`** — one row per SDK invocation. `id`, `conversation_id`, `parent_run_id` (nullable, self-FK for subagents), `agent_name`, `prompt_sha`, `model`, `status` (`running` | `ok` | `error` | `cancelled` | `timeout` | `cost_capped` | `turns_exceeded`), `started_at`, `ended_at`, `cancel_requested_at` (nullable, set by `POST .../cancel`), `total_cost_usd`, `sdk_session_id` (for resume). Index `(conversation_id, started_at)` and `(parent_run_id)`. Add a partial unique index `(conversation_id) WHERE status = 'running'` to enforce the concurrency policy below.
 - **`tool_calls`** — `id`, `run_id`, `name`, `input jsonb`, `output jsonb`, `status` (`ok` | `error`), `started_at`, `ended_at`, `duration_ms`. Index `(run_id, started_at)`.
-- **`run_events`** — append-only SSE replay log. `id` (monotonic), `run_id`, `seq`, `type`, `payload jsonb`, `created_at`. Index `(run_id, id)`. Retain for a bounded window (e.g. 24h) and prune.
+- **`run_events`** — append-only SSE replay log. `id` (monotonic), `run_id`, `seq`, `type`, `payload jsonb`, `created_at`. Index `(run_id, id)`. Use Postgres declarative partitioning by `created_at` day so pruning is `DROP TABLE run_events_YYYY_MM_DD` (O(1)) instead of bulk `DELETE` (O(n) plus index bloat). [`pg_partman`](https://github.com/pgpartman/pg_partman) automates partition creation. A 7-day retention window is a reasonable default; extend it if eval replay matters.
 
 The SDK exposes `total_cost_usd` on the final `ResultMessage` but **not** per-turn input/output token counts. Persist what you have; don't fabricate token columns. If you need per-call token data later, you'll have to instrument by intercepting the underlying API calls.
 
@@ -216,6 +305,22 @@ All routes mounted under `/api/v1`, scoped to `current_user`. Sessions not owned
 | `POST` | `/sessions/{id}/runs/{run_id}/cancel` | Cooperative cancel. |
 
 The split between `POST /runs` and `GET .../stream` lets the client kick off a run, persist `run_id`, and reconnect to the stream after a refresh without resubmitting.
+
+### Concurrency policy
+
+Only one run per conversation may be `running` at a time. Enforced by the partial unique index on `agent_runs` (see Persistence schema):
+
+```sql
+CREATE UNIQUE INDEX one_active_run_per_conversation
+  ON agent_runs (conversation_id)
+  WHERE status = 'running';
+```
+
+A `POST /runs` against a conversation with an in-flight run returns `409 Conflict` with the existing `run_id` and `stream_url` in the body. Clients display the live stream for that run rather than retrying.
+
+### `Idempotency-Key`
+
+Optional header on `POST /runs`. The server stores `(user_id, key) → run_id` for 24h; a duplicate within that window returns the original `{run_id, stream_url}` instead of creating a new run. Guards against accidental double-submits (refresh, retry-on-flaky-network). Keys are client-generated (UUIDv4 is fine); the server treats them as opaque.
 
 ### One endpoint, two input shapes
 
@@ -256,6 +361,35 @@ Two layers:
 - **SSE stream resume** — a reconnecting client sends `Last-Event-ID: <n>`. The handler queries `run_events` for that run where `id > n`, replays them as SSE, and — if the run is still in flight — attaches to the live tail. Completed runs replay to `run_end` and close.
 
 Resuming a *conversation* (not just a connection) is `GET /sessions/{id}/messages` for history, then `POST /sessions/{id}/runs` for the next turn. The same event objects come back from history that the SSE stream emitted, so the client's reducer is identical for live and replayed events.
+
+## Client consumer
+
+The full client stack lives in `guides/client/README.md`; the SSE consumption shape for *this engine* is:
+
+```ts
+// Submit a turn and stream events.
+const { run_id, stream_url } = await post(
+  `/api/v1/sessions/${conversationId}/runs`,
+  { input: { kind: "chat", content } },
+);
+
+const es = new EventSource(stream_url, { withCredentials: true });
+
+const types = [
+  "run_start", "message", "tool_call_start", "tool_call_result",
+  "subagent_start", "subagent_end", "usage", "error", "run_end",
+];
+for (const t of types) {
+  es.addEventListener(t, (e) =>
+    dispatch({ type: t, payload: JSON.parse(e.data), id: e.lastEventId }),
+  );
+}
+es.addEventListener("run_end", () => es.close());
+```
+
+The reducer keyed on `event.type` is the *same one* used to render history fetched from `GET /sessions/{id}/messages` — persisted events replay through identical code. To resume after a refresh: read the persisted `run_id` and `stream_url`, attach a new `EventSource`, and the browser's automatic `Last-Event-ID` reconnect causes the server to replay from `run_events` where `id > Last-Event-ID`.
+
+Native `EventSource` doesn't expose request headers (no auth header injection, no POST body). If your auth depends on bearer tokens rather than cookies, use a `fetch + ReadableStream` consumer instead — see `guides/client/README.md`'s SSE notes.
 
 ## Testing
 
