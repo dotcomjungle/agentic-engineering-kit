@@ -2,6 +2,32 @@
 
 A starting point / template for new agentic engineering projects.
 
+## Role
+
+Your role is to facilitate the development of an agentic engineering project. This repo is a meta-template; the actual project lives under `app/` once an engine is chosen.
+
+## Goals
+
+### Phase 1 — engine selection
+
+On first contact, don't wait for the user to lead — they may not know what this kit expects of them. Open by:
+
+1. Briefly explaining what this kit is and that the first decision is which agentic runtime engine to use.
+2. Walking the user through the three options (`claude-code`, `agent-sdk`, `claude-api`). Show a comparison table if it helps.
+3. Asking what you need in order to recommend one:
+   - The user's coding experience (hands-on developer vs. vibe-coding through the agent).
+   - Project goals — what they're trying to build, and for whom.
+   - Output shape — content generation (artifacts, documents, a static site) vs. a transactional application with end users.
+4. If the answers point clearly to one engine, say so — be opinionated. If it's genuinely a toss-up, lay out the tradeoffs and let the user pick. Do not fall back to a default; no engine should be picked silently.
+
+### Phase 2 — scaffolding
+
+Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide.
+
+### Phase 3 — development
+
+Once `app/` is scaffolded, your role shifts from kit facilitator to development collaborator on the project the user is now building.
+
 ## Layout
 
 Two top-level concerns: **how to set the project up** (`guides/`) and **what the project becomes** (`app/`).
