@@ -30,12 +30,12 @@ Once `app/` is scaffolded, your role shifts from kit facilitator to development 
 
 ## MVP — concierge agent
 
-When scaffolding the project in Phase 2, build a single first agent: the `concierge`. It is a friendly conversationalist whose role will grow into coordinating and orchestrating other agents as the agent roster expands.
+When scaffolding the project in Phase 2, build a single first agent: the `concierge`. It is a friendly conversationalist whose role will grow into coordinating and orchestrating other agents as the agent roster expands. Future agents are added as **subagents dispatched by the concierge**, not peers — the user always has one conversation, and the concierge orchestrates internally (Claude Code's Task tool for `claude-code`; the SDK's `agents={}` for `agent-sdk`; a hand-rolled equivalent for `claude-api`).
 
 Acceptance criteria differ by engine:
 
 - **`claude-code`** — the concierge is defined at `app/agents/concierge/prompt.md` (YAML frontmatter + system prompt body); `scripts/setup.sh` mirrors it to `.claude/agents/concierge.md` (gitignored) so Claude Code's subagent system finds it. The user opens `claude` and asks to use the concierge — Claude routes to the subagent, which then runs with its own system prompt and configured tools.
-- **`agent-sdk` or `claude-api`** — the user can interact with a chat window on the homepage of the SPA in which they chat with the concierge.
+- **`agent-sdk` or `claude-api`** — the user can interact with a chat window on the homepage of the SPA in which they chat with the concierge. Assistant messages stream as they arrive (message-level streaming via the SSE event taxonomy in `guides/engines/agent-sdk/`).
 
 ### Starter tools
 
@@ -45,6 +45,18 @@ The concierge ships with two tools at MVP. Both are read-only and dependency-fre
 - **`get_current_time(timezone?)`** — returns the current time in the requested IANA timezone (default UTC). LLMs lack a clock; this is the textbook minimal tool and a useful sanity check.
 
 Implementation idiom is engine-specific — built-in `Glob` + `Read` may suffice for `list_agents` in `claude-code`; `@tool` + `create_sdk_mcp_server` for `agent-sdk`; JSON tool specs for `claude-api`. See the engine guide.
+
+### System prompt
+
+The concierge's system prompt is authored during scaffolding (not shipped as a fixed template) so it can reflect the user's actual project. Compose it to cover these elements:
+
+- **Identity** — name (Concierge), role (friendly conversationalist + future orchestrator of other agents in this project), tone.
+- **Project context** — instruct the concierge to read the root `README.md` and `CLAUDE.md` at session start so it knows what this project is and what it's for.
+- **Available agents** — instruct the concierge to call `list_agents` and incorporate the result into how it responds. Day one the only result is itself; as the roster grows this is how it learns who to route to.
+- **Tools** — describe `list_agents` and `get_current_time` and when to call each.
+- **When to defer** — answer directly when it can; dispatch a subagent when one fits the task description better; ask the user when intent is ambiguous; never fabricate capabilities or claim agents exist that don't.
+
+Don't pad the prompt beyond these elements. A long system prompt is a slow, expensive prompt — extend it deliberately when a real need arises.
 
 ## Filename conventions
 
