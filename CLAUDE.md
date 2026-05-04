@@ -22,11 +22,29 @@ On first contact, don't wait for the user to lead — they may not know what thi
 
 ### Phase 2 — scaffolding
 
-Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide. Part of scaffolding is creating the three entry-point scripts under `scripts/` — see the Layout section below.
+Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide. Part of scaffolding is creating the three entry-point scripts under `scripts/` — see the Layout section below. The first agent to build is the `concierge` — see the MVP section below.
 
 ### Phase 3 — development
 
 Once `app/` is scaffolded, your role shifts from kit facilitator to development collaborator on the project the user is now building.
+
+## MVP — concierge agent
+
+When scaffolding the project in Phase 2, build a single first agent: the `concierge`. It is a friendly conversationalist whose role will grow into coordinating and orchestrating other agents as the agent roster expands.
+
+Acceptance criteria differ by engine:
+
+- **`claude-code`** — the concierge is defined at `app/agents/concierge/prompt.md` (YAML frontmatter + system prompt body); `scripts/setup.sh` mirrors it to `.claude/agents/concierge.md` (gitignored) so Claude Code's subagent system finds it. The user opens `claude` and asks to use the concierge — Claude routes to the subagent, which then runs with its own system prompt and configured tools.
+- **`agent-sdk` or `claude-api`** — the user can interact with a chat window on the homepage of the SPA in which they chat with the concierge.
+
+### Starter tools
+
+The concierge ships with two tools at MVP. Both are read-only and dependency-free, and they double as worked examples of the engine's tool-definition idiom and as a smoke test that tool wiring works end-to-end.
+
+- **`list_agents`** — returns the project's agent roster (name + one-line description per agent), read from the engine-appropriate registry. Day one this returns just `[concierge]`; as the roster grows it becomes the basis for routing and coordination.
+- **`get_current_time(timezone?)`** — returns the current time in the requested IANA timezone (default UTC). LLMs lack a clock; this is the textbook minimal tool and a useful sanity check.
+
+Implementation idiom is engine-specific — built-in `Glob` + `Read` may suffice for `list_agents` in `claude-code`; `@tool` + `create_sdk_mcp_server` for `agent-sdk`; JSON tool specs for `claude-api`. See the engine guide.
 
 ## Filename conventions
 

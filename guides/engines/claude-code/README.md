@@ -2,17 +2,49 @@
 
 Playbook for initializing an agentic engineering project that defines system prompts and tools but is interacted with directly in the Claude Code CLI.
 
-## Agent Definitions
+## Agent definitions
 
-Organize the project with an app/agents/ directory
+Each agent lives in its own directory under `app/agents/`. The directory holds the agent's source — at minimum a `prompt.md` with YAML frontmatter + system-prompt body, plus per-agent assets (custom tool implementations, fixtures, docs) as they accrue.
 
-Each agent, such as "designer", "a11y-advocate", "security-officer" or "kermit-the-frog" will have it's own directory. And in that directory will be a prompt.md file.
+Example: `app/agents/a11y-advocate/prompt.md`
 
-For example:
+```markdown
+---
+name: a11y-advocate
+description: Reviews UI work for accessibility issues and suggests WCAG-aligned fixes.
+tools: Read, Glob, Grep
+model: sonnet
+---
 
-`app/agents/a11y-advocate/prompt.md`
+You are the accessibility advocate for this project. Your job is to...
+```
 
-And this file would have a system prompt defining the roles, goals, and unique instructions for this agent's behavior.
+Frontmatter fields match Claude Code's subagent metadata:
+
+- `name` (required) — must match the directory name.
+- `description` (required) — Claude routes to this agent when a task matches the description, so write it as a clear capability statement, not a bio.
+- `tools` (optional) — comma-separated list of allowed tools. Omit to inherit the parent's full toolset.
+- `model` (optional) — `sonnet`, `opus`, or `haiku` to override the default.
+
+Refer to Claude Code's current subagent docs for the authoritative frontmatter spec — fields evolve.
+
+### How invocation works
+
+Claude Code's subagent system reads from `.claude/agents/<name>.md` (project-level) or `~/.claude/agents/<name>.md` (user-level). The kit's source of truth lives at `app/agents/<name>/prompt.md`; `.claude/agents/<name>.md` is **generated** from it. The reason for the indirection: `app/agents/<name>/` is a directory, which gives each agent a place to host custom tools, fixtures, and docs alongside its prompt — Claude Code's subagent location is a flat single-file format that doesn't.
+
+`scripts/setup.sh` mirrors every agent into `.claude/agents/`:
+
+```sh
+mkdir -p .claude/agents
+for dir in app/agents/*/; do
+  name=$(basename "$dir")
+  cp "$dir/prompt.md" ".claude/agents/$name.md"
+done
+```
+
+`.claude/agents/` is **gitignored**. Re-run `scripts/setup.sh` after editing any prompt; `scripts/start.sh` should mirror as its first step so opening `claude` always finds fresh agents.
+
+Once mirrored, the user invokes an agent either explicitly ("use the concierge agent") or implicitly (Claude routes to a matching `description` when the user describes a task). The agent then runs with the system prompt and tools declared in its frontmatter.
 
 ## Static website
 
