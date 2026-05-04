@@ -22,7 +22,7 @@ On first contact, don't wait for the user to lead — they may not know what thi
 
 ### Phase 2 — scaffolding
 
-Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide.
+Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide. Part of scaffolding is creating the three entry-point scripts under `scripts/` — see the Layout section below.
 
 ### Phase 3 — development
 
@@ -67,3 +67,23 @@ The shape of `app/` depends on which engine you picked:
 
 - `app/server/CLAUDE.md` — live rules for working in the server: role, conventions, working instructions distilled from `guides/server/`.
 - `app/client/CLAUDE.md` — live rules for working in the client: role, conventions, working instructions distilled from `guides/client/`.
+
+### `scripts/` — developer entry points
+
+The scripts here are the canonical entry points for working with the project — for humans and for you. They abstract over the engine choice so anyone can set up, run, and validate the project without knowing whether it's `uv` + `npm`, Astro, or something else underneath. **Create all three when scaffolding the project in Phase 2** and tailor each to the chosen engine — every engine has meaningful work for setup, start, and validate, so don't omit any of the three. When the run/test/build story changes in Phase 3, keep them in sync — a stale `validate.sh` is worse than none.
+
+- **`scripts/setup.sh`** — install dependencies and run idempotent seeds. Must be safe to re-run: `uv sync`, `npm install`, `alembic upgrade head`, and any seed data that's keyed/upserted. A new contributor should be one command from a working environment.
+- **`scripts/start.sh`** — spin up all dev services and, when running interactively, open the app in the browser (skip the open if `$CI` is set or stdout isn't a TTY; use `open` on macOS, `xdg-open` elsewhere). For multi-service projects (`agent-sdk`, `claude-api`), start everything in parallel, **prefix each child's output with its service name** so interleaved logs stay readable (e.g. `npx concurrently --names server,client --prefix-colors blue,green ...`, or a `sed`-prefix per child), and ensure Ctrl-C cleans up children (`trap` + `wait`). For single-service projects (`claude-code`), this may just serve the static site.
+- **`scripts/validate.sh`** — the pre-PR / pre-commit check. Run all linters, type checkers, test suites, and any production build. This is the correctness gate CI uses to decide whether a change can merge — not the full CI pipeline (deploy, secret scanning, etc. live in CI config, not here). If it's too slow for developers to run locally before pushing, it's the wrong check — split or speed it up rather than skip steps.
+
+Conventions for every script in this directory:
+
+- `#!/usr/bin/env bash` and `set -euo pipefail`. Fail fast.
+- Resolve paths from the repo root so scripts work from any cwd. Standard idiom at the top of each script:
+
+  ```bash
+  cd "$(dirname "${BASH_SOURCE[0]}")/.."
+  ```
+
+- Exit non-zero on any failure. Don't swallow errors to keep going.
+- Print a short banner before each step (`=== step name ===`) so failures are easy to locate in the output.
