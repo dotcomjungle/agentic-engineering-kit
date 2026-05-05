@@ -1,4 +1,4 @@
-# Claude Code Engine
+# Claude Code Harness Guide
 
 Playbook for initializing an agentic engineering project that defines system prompts and tools but is interacted with directly in the Claude Code CLI.
 

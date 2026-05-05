@@ -2,9 +2,9 @@
 
 Recommended Python stack for the backend server of a web app built with this kit.
 
-**This guide only applies if you picked the `agent-sdk` or `claude-api` engine.** The `claude-code` engine doesn't use `app/server/` at all — agents run in the CLI and produce artifacts (e.g. the static site under `app/site/`), so there's nothing for a server to do.
+**This guide only applies if you picked the `agent-sdk` or `claude-api` harness.** The `claude-code` harness doesn't use `app/server/` at all — agents run in the CLI and produce artifacts (e.g. the static site under `app/site/`), so there's nothing for a server to do.
 
-For projects that *do* have a server, the server is the **data and API layer**. Agent runtime hosting belongs to the engine; the server stays orthogonal — it serves data, persists state, and exposes endpoints the runtime and the client call.
+For projects that *do* have a server, the server is the **data and API layer**. Agent execution belongs to the harness; the server stays orthogonal — it serves data, persists state, and exposes endpoints the client calls.
 
 ## At a glance
 
@@ -34,7 +34,7 @@ For projects that *do* have a server, the server is the **data and API layer**. 
 
 ## What the server does *not* own
 
-- **Agent runtime definition** — see `guides/engines/`. The runtime may execute inside the server process (it usually does for the `agent-sdk` engine, where a FastAPI handler invokes the SDK directly), but *defining* it — system prompts, tool registration, agent topology — belongs to the engine guide, not the server.
+- **Agent harness definition** — see `guides/harnesses/`. The harness may execute inside the server process (it usually does for the `agent-sdk` harness, where a FastAPI handler invokes the SDK directly), but *defining* it — system prompts, tool registration, agent topology — belongs to the harness guide, not the server.
 - **Client UI** — see `guides/client/`.
 - **Auth** — bring your own IdP / token verifier. Wire it in as a FastAPI dependency at the router boundary.
 

@@ -25,7 +25,7 @@ UI rendering, user interaction, routing, route-scoped data loading, the local ca
 
 - **Domain logic / validation** — server is authoritative. Type for shape, not for rules. Surface the server's errors; don't replicate its validation.
 - **Persistence of domain data** — no IndexedDB, no `localStorage` for sessions/messages/etc. (Auth tokens and theme preference are fine.)
-- **Agent runtime** — see `app/server/`. The client only consumes the run stream.
+- **Harness** — see `app/server/`. The client only consumes the run stream.
 - **Auth provider** — bring your own; wire it into `lib/api.ts`'s header resolver.
 
 ## Layout
@@ -78,7 +78,7 @@ src/
 ### SSE consumption
 
 - All SSE goes through `consumeRun(url, { onEvent, signal, lastEventId })` in `lib/sse.ts`. Don't write a second SSE consumer.
-- The event union type matches the server's event taxonomy — see `guides/engines/agent-sdk/`. Adding a new event type means updating the union here AND the server emitter together.
+- The event union type matches the server's event taxonomy — see `guides/harnesses/agent-sdk/`. Adding a new event type means updating the union here AND the server emitter together.
 - `run-reducer.ts` is **pure** — events in, state out. Unit-test it. Do not put side effects in it.
 - The component subscribing to a run holds a `useReducer` of `Run` state, mounts an `AbortController`, calls `consumeRun` in an effect, and aborts on unmount.
 - On reconnect, call `consumeRun` again with the last seen event id. The server replays missed events.
@@ -122,6 +122,6 @@ src/
 ## When you're stuck
 
 - Stack rationale (why these choices, what alternatives) — `guides/client/README.md`.
-- Server contract (endpoints, SSE event taxonomy, error envelope) — `guides/engines/agent-sdk/README.md` or `guides/engines/claude-api/README.md`.
+- Server contract (endpoints, SSE event taxonomy, error envelope) — `guides/harnesses/agent-sdk/README.md` or `guides/harnesses/claude-api/README.md`.
 - Server stack — `guides/server/README.md`.
 - Repo overview — root `CLAUDE.md`.

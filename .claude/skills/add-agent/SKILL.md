@@ -5,12 +5,12 @@ description: Add a new agent definition to the project. Use when the user asks t
 
 When invoked, create a new agent under `app/agents/<slug>/prompt.md`, drafting a role-specific system prompt from the requested role name.
 
-## 1. Verify the engine
+## 1. Verify the harness
 
-This skill supports the `claude-code` engine only. Detect:
+This skill supports the `claude-code` harness only. Detect:
 
-- `app/agents/` exists (even if empty) → claude-code engine. Proceed.
-- `app/agents/` does not exist, but `app/server/` contains Python source (`pyproject.toml`, `*.py`) → `agent-sdk` or `claude-api` engine. Refuse: tell the user this skill only supports `claude-code` today and that adding agents to those engines is still manual.
+- `app/agents/` exists (even if empty) → claude-code harness. Proceed.
+- `app/agents/` does not exist, but `app/server/` contains Python source (`pyproject.toml`, `*.py`) → `agent-sdk` or `claude-api` harness. Refuse: tell the user this skill only supports `claude-code` today and that adding agents to those harnesses is still manual.
 - `app/` contains only documentation stubs (`app/server/CLAUDE.md`, `app/client/CLAUDE.md`) and no implementation → project hasn't been kickstarted. Tell the user to read `KICKSTART.md` and kickstart first.
 
 ## 2. Determine the slug
@@ -51,7 +51,7 @@ mkdir -p .claude/agents
 cp "app/agents/<slug>/prompt.md" ".claude/agents/<slug>.md"
 ```
 
-…and tell the user that `scripts/setup.sh` is missing and should be created (point them at `CLAUDE.md` and the engine guide).
+…and tell the user that `scripts/setup.sh` is missing and should be created (point them at `CLAUDE.md` and the harness guide).
 
 ## 5. Report back
 

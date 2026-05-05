@@ -2,9 +2,9 @@
 
 Recommended TypeScript/React stack for the frontend of a web project built with this kit.
 
-**This guide only applies if you picked the `agent-sdk` or `claude-api` engine.** The `claude-code` engine doesn't ship a SPA — agents publish to a static Astro site under `app/site/` and there's nothing for a client of this shape to do.
+**This guide only applies if you picked the `agent-sdk` or `claude-api` harness.** The `claude-code` harness doesn't ship a SPA — agents publish to a static Astro site under `app/site/` and there's nothing for a client of this shape to do.
 
-For projects that *do* have a client, the client is the **interaction surface**. It renders the UI, drives user input, consumes the server's REST + SSE contract, and keeps a coherent local view of server state. Domain logic, persistence, and the agent runtime belong to the server.
+For projects that *do* have a client, the client is the **interaction surface**. It renders the UI, drives user input, consumes the server's REST + SSE contract, and keeps a coherent local view of server state. Domain logic, persistence, and the harness belong to the server.
 
 ## At a glance
 
@@ -36,7 +36,7 @@ For projects that *do* have a client, the client is the **interaction surface**.
 ## What the client does *not* own
 
 - **Domain logic / validation** — the server is authoritative. The client does shape-only typing and surfaces server errors; it doesn't replicate validation rules.
-- **Agent runtime** — see `guides/engines/`. The client only consumes the run stream.
+- **Agent harness** — see `guides/harnesses/`. The client only consumes the run stream.
 - **Persistence** — no IndexedDB, no `localStorage` for domain data. Server is the system of record. (Auth tokens / theme preference are fine.)
 - **Auth** — bring your own provider. Wire token resolution into a single place (`lib/api.ts`).
 
@@ -84,7 +84,7 @@ Why not axios: we already need `fetch` for SSE (axios's browser build doesn't st
 
 `EventSource` is too limited (no custom headers means no bearer tokens, no body on the open). Use `fetch` with `Accept: text/event-stream`, read the body as a `ReadableStream`, and parse `event:` / `data:` / `id:` lines yourself. A small parser in `lib/sse.ts`:
 
-- Accepts a typed event union matching the server's event taxonomy (see `guides/engines/agent-sdk/`).
+- Accepts a typed event union matching the server's event taxonomy (see `guides/harnesses/agent-sdk/`).
 - Exposes a `consumeRun(url, { onEvent, signal, lastEventId })` function returning a promise that resolves on `run_end` or rejects on terminal error.
 - Tracks the last seen `id:` and reconnects with `Last-Event-ID` on transient failure.
 - Cleans up via an `AbortController` passed in by the caller.

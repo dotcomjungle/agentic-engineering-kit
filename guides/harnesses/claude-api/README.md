@@ -1,8 +1,8 @@
-# Claude API Engine
+# Claude API Harness Guide
 
-Playbook for initializing an agentic engineering project that uses Anthropic's Claude API and builds a custom runtime, interacted with through the application interface.
+Playbook for initializing an agentic engineering project that uses Anthropic's Claude API and builds a custom harness, interacted with through the application interface.
 
-> **Status: planning sketch.** This file is an outline for the eventual guide, not the guide itself. The structure below mirrors `guides/engines/agent-sdk/README.md` so a reader can pick between the two by reading the diff. Replace this notice with the real content as sections are written.
+> **Status: planning sketch.** This file is an outline for the eventual guide, not the guide itself. The structure below mirrors `guides/harnesses/agent-sdk/README.md` so a reader can pick between the two by reading the diff. Replace this notice with the real content as sections are written.
 
 ## Framing
 
@@ -10,10 +10,10 @@ Playbook for initializing an agentic engineering project that uses Anthropic's C
 
 ## Planned sections (and what changes vs. agent-sdk)
 
-1. **When to choose this engine** — pick when SDK loop control isn't enough: custom tool dispatch policies, streaming token-by-token, structured outputs as first-class results, non-standard turn shapes, or wanting the underlying token/usage data the SDK hides.
+1. **When to choose this harness** — pick when SDK loop control isn't enough: custom tool dispatch policies, streaming token-by-token, structured outputs as first-class results, non-standard turn shapes, or wanting the underlying token/usage data the SDK hides.
 2. **Assumed constraints** — same stack as agent-sdk; explicit non-goal: this guide doesn't re-derive the server/client guides.
 3. **Architecture** — the big swap. No `query()` / `ClaudeSDKClient`. Instead: a hand-rolled async loop around `anthropic.AsyncAnthropic().messages.stream(...)` that handles `tool_use` blocks, dispatches to a tool registry, appends `tool_result` blocks, re-enters the loop until `stop_reason != "tool_use"`. Show the skeleton.
-4. **Streaming granularity** — *here* you do get per-token deltas (`content_block_delta`). Worth calling out as a real reason to choose this engine.
+4. **Streaming granularity** — *here* you do get per-token deltas (`content_block_delta`). Worth calling out as a real reason to choose this harness.
 5. **Tools** — plain async functions in a registry keyed by name. JSON schema authored by hand (or via Pydantic → schema). No MCP; no SDK `@tool` indirection. Same closure-over-deps pattern for tenancy safety.
 6. **Permissions** — pre-dispatch hook in your own loop. Same swap-the-body story.
 7. **Subagents** — *you* implement them. Either nested loops in-process or a recursive `run_turn`. Cover the topology + how parent/child runs link via `parent_run_id`.
@@ -29,7 +29,7 @@ Playbook for initializing an agentic engineering project that uses Anthropic's C
 
 ## Open questions to resolve before drafting
 
-- **Token streaming default on or off?** It's the engine's headline capability but adds client complexity. Lean toward defaulting on and noting how to suppress.
+- **Token streaming default on or off?** It's the headline capability of this harness but adds client complexity. Lean toward defaulting on and noting how to suppress.
 - **Pricing table location?** `Settings`, a JSON file, or fetched? Cheapest answer: a checked-in dict keyed by model name, updated when models change.
 - **Subagent depth — recommend a hard cap?** Probably yes (e.g. 3) to avoid runaway recursion before the cost cap trips.
 

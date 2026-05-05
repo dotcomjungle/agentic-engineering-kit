@@ -1,8 +1,8 @@
-# Agent SDK Engine
+# Agent SDK Harness Guide
 
-Playbook for an agentic project that uses Anthropic's [Claude Agent SDK for Python](https://github.com/anthropics/claude-agent-sdk-python) as the runtime, hosted inside the project's own application.
+Playbook for an agentic project that uses Anthropic's [Claude Agent SDK for Python](https://github.com/anthropics/claude-agent-sdk-python) as the harness, hosted inside the project's own application.
 
-## When to choose this engine
+## When to choose this harness
 
 Pick `agent-sdk` when:
 
@@ -10,7 +10,7 @@ Pick `agent-sdk` when:
 - You want Anthropic to maintain the agent loop, tool dispatch, session management, and subagent topology rather than building it yourself.
 - You're comfortable on the Python server stack in `guides/server/README.md`.
 
-If your product is artifacts authored by Claude Code with no end-user runtime, use `claude-code` instead. If the SDK's loop doesn't fit your control needs, use `claude-api` instead.
+If your product is artifacts authored by Claude Code with no end-user-facing application, use `claude-code` instead. If the SDK's loop doesn't fit your control needs, use `claude-api` instead.
 
 ## Assumed constraints
 
@@ -137,7 +137,7 @@ Two invariants this skeleton enforces:
 
 The Python SDK delivers **whole message objects** (`AssistantMessage`, `ToolResultMessage`, `ResultMessage`), not per-block deltas. The SSE event taxonomy below reflects that: `message` events carry full assistant turns, not character-level chunks.
 
-If you need typewriter-style chat output, you have to bypass the SDK and call the underlying Anthropic streaming API directly — at which point you're effectively on the `claude-api` engine. Don't half-way it. The `agent-sdk` engine is fine for chat where messages appear as units, and it's the natural fit for structured task UIs where the user is waiting on a result, not a typing animation.
+If you need typewriter-style chat output, you have to bypass the SDK and call the underlying Anthropic streaming API directly — at which point you're effectively on the `claude-api` harness. Don't half-way it. The `agent-sdk` harness is fine for chat where messages appear as units, and it's the natural fit for structured task UIs where the user is waiting on a result, not a typing animation.
 
 ### Scaling ceiling
 
@@ -364,7 +364,7 @@ Resuming a *conversation* (not just a connection) is `GET /sessions/{id}/message
 
 ## Client consumer
 
-The full client stack lives in `guides/client/README.md`; the SSE consumption shape for *this engine* is:
+The full client stack lives in `guides/client/README.md`; the SSE consumption shape for *this harness* is:
 
 ```ts
 // Submit a turn and stream events.
@@ -413,7 +413,7 @@ Open an OTel span `agent.run` for each SDK invocation with attributes `agent.nam
 - **Server stack** (FastAPI, SQLAlchemy, Postgres, uv, lint, test, deploy) — `guides/server/README.md`.
 - **Client UI** (React/TS, SSE consumption, rendering tool-call and subagent events) — `guides/client/README.md`.
 - **Auth** — bring your own. Wire it in as a FastAPI dependency that resolves `current_user`. Everything in this guide assumes that exists.
-- **Individual agents** (system prompts, tool rosters, subagent topology for *your* product) — that's per-project content under `app/server/src/agents/`, not part of the engine playbook.
+- **Individual agents** (system prompts, tool rosters, subagent topology for *your* product) — that's per-project content under `app/server/src/agents/`, not part of the harness playbook.
 
 ## References
 

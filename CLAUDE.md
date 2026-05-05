@@ -12,7 +12,7 @@ You are a development collaborator on the agentic engineering project that lives
 
 This repo uses two filename conventions deliberately. Know the difference:
 
-- **`README.md`** — documentation. Audience is humans browsing the repo, plus you when you need context. *Reference material, not instructions.* The root `README.md` is the project's front door; the `README.md` files under `guides/` explain the **rationale** behind each stack/engine choice (the *why*, plus alternatives considered). Read them for context. Don't treat them as a checklist to execute.
+- **`README.md`** — documentation. Audience is humans browsing the repo, plus you when you need context. *Reference material, not instructions.* The root `README.md` is the project's front door; the `README.md` files under `guides/` explain the **rationale** behind each stack/harness choice (the *why*, plus alternatives considered). Read them for context. Don't treat them as a checklist to execute.
 - **`CLAUDE.md`** — instructions to you. Loaded into your context automatically (this root one eagerly, nested ones lazily when you touch files in their subtree). Written as live rules for how to work in that part of the codebase. *Follow them.*
 
 If a `README.md` and a `CLAUDE.md` appear to disagree on what you should do, `CLAUDE.md` wins.
@@ -21,32 +21,32 @@ If a `README.md` and a `CLAUDE.md` appear to disagree on what you should do, `CL
 
 Two top-level concerns: **how to set the project up** (`guides/`) and **what the project becomes** (`app/`).
 
-### `guides/` — engine and stack guides
+### `guides/` — harness and stack guides
 
-- `guides/engines/` — three mutually exclusive playbooks for the agentic runtime. Pick one:
-  - `guides/engines/claude-code/` — interact directly via the Claude Code CLI. Agents are defined as `app/agents/<name>/prompt.md`; artifacts are published as a static site under `app/site/` (Astro).
-  - `guides/engines/agent-sdk/` — Anthropic Claude Agent SDK as the runtime, driven through an application UI. Agentic software written in python.
-  - `guides/engines/claude-api/` — custom runtime built on the Claude API, driven through an application UI. Agentic software written in python.
-- `guides/client/` — recommended (default) frontend tech stack and a discussion of alternatives. **Applies to `agent-sdk` and `claude-api` engines only.**
-- `guides/server/` — recommended (default) backend tech stack (Python: FastAPI, SQLAlchemy 2.x async, Postgres, `uv`). **Applies to `agent-sdk` and `claude-api` engines only.**
+- `guides/harnesses/` — three mutually exclusive playbooks for the agent harness. Pick one:
+  - `guides/harnesses/claude-code/` — interact directly via the Claude Code CLI. Agents are defined as `app/agents/<name>/prompt.md`; artifacts are published as a static site under `app/site/` (Astro).
+  - `guides/harnesses/agent-sdk/` — Anthropic Claude Agent SDK as the harness, driven through an application UI. Agentic software written in python.
+  - `guides/harnesses/claude-api/` — custom harness built on the Claude API, driven through an application UI. Agentic software written in python.
+- `guides/client/` — recommended (default) frontend tech stack and a discussion of alternatives. **Applies to `agent-sdk` and `claude-api` harnesses only.**
+- `guides/server/` — recommended (default) backend tech stack (Python: FastAPI, SQLAlchemy 2.x async, Postgres, `uv`). **Applies to `agent-sdk` and `claude-api` harnesses only.**
 
 ### `app/` — your project
 
-The shape of `app/` depends on which engine you picked:
+The shape of `app/` depends on which harness you picked:
 
-**`claude-code` engine** — no server, no SPA client.
+**`claude-code` harness** — no server, no SPA client.
 
 - `app/agents/<name>/prompt.md` — system prompt defining each agent's role, goals, and behavior.
 - `app/site/` — Astro static site for agent-authored artifacts. Source under `src/content/`; build output `dist/` is gitignored and never hand-edited.
 
-**`agent-sdk` and `claude-api` engines** — a web project with a server and a client.
+**`agent-sdk` and `claude-api` harnesses** — a web project with a server and a client.
 
 - `app/server/CLAUDE.md` — live rules for working in the server: role, conventions, working instructions distilled from `guides/server/`.
 - `app/client/CLAUDE.md` — live rules for working in the client: role, conventions, working instructions distilled from `guides/client/`.
 
 ### `scripts/` — developer entry points
 
-The scripts here are the canonical entry points for working with the project — for humans and for you. They abstract over the engine choice so anyone can set up, run, and validate the project without knowing whether it's `uv` + `npm`, Astro, or something else underneath. **Create all three during kickstart** and tailor each to the chosen engine — every engine has meaningful work for setup, start, and validate, so don't omit any of the three. When the run/test/build story changes during normal development, keep them in sync — a stale `validate.sh` is worse than none.
+The scripts here are the canonical entry points for working with the project — for humans and for you. They abstract over the harness choice so anyone can set up, run, and validate the project without knowing whether it's `uv` + `npm`, Astro, or something else underneath. **Create all three during kickstart** and tailor each to the harness you picked — all three have meaningful work for setup, start, and validate, so don't omit any. When the run/test/build story changes during normal development, keep them in sync — a stale `validate.sh` is worse than none.
 
 - **`scripts/setup.sh`** — install dependencies and run idempotent seeds. Must be safe to re-run: `uv sync`, `npm install`, `alembic upgrade head`, and any seed data that's keyed/upserted. A new contributor should be one command from a working environment.
 - **`scripts/start.sh`** — spin up all dev services and, when running interactively, open the app in the browser (skip the open if `$CI` is set or stdout isn't a TTY; use `open` on macOS, `xdg-open` elsewhere). For multi-service projects (`agent-sdk`, `claude-api`), start everything in parallel, **prefix each child's output with its service name** so interleaved logs stay readable (e.g. `npx concurrently --names server,client --prefix-colors blue,green ...`, or a `sed`-prefix per child), and ensure Ctrl-C cleans up children (`trap` + `wait`). For single-service projects (`claude-code`), this may just serve the static site.
