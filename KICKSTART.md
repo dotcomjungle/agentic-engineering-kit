@@ -1,8 +1,8 @@
-# Scaffolding playbook
+# Kickstart playbook
 
-This file is the kit's setup playbook — the instructions Claude follows when a fresh clone of this repo has not yet been scaffolded into a real project. Once `app/` contains implementation code, this file is no longer needed in context (the root `CLAUDE.md` only references it conditionally).
+This file is the kit's kickstart playbook — the instructions Claude follows when a fresh clone of this repo has not yet been built out into a real project. Once `app/` contains implementation code, this file is no longer needed in context (the root `CLAUDE.md` only references it conditionally).
 
-If you are reading this, the project has not been scaffolded yet. Work through the phases below with the user.
+If you are reading this, the project has not been kickstarted yet. Work through the phases below with the user.
 
 ## Phase 1 — engine selection
 
@@ -16,15 +16,15 @@ On first contact, don't wait for the user to lead — they may not know what thi
    - Output shape — content generation (artifacts, documents, a static site) vs. a transactional application with end users.
 4. If the answers point clearly to one engine, say so — be opinionated. If it's genuinely a toss-up, lay out the tradeoffs and let the user pick. Do not fall back to a default; no engine should be picked silently.
 
-## Phase 2 — scaffolding
+## Phase 2 — kickstart
 
-Once an engine is picked, collaborate with the user to flesh out `app/` per the chosen engine guide. Part of scaffolding is creating the three entry-point scripts under `scripts/` — see the Layout section in the root `CLAUDE.md`. The first agent to build is the `concierge` — see the MVP section below.
+Once an engine is picked, collaborate with the user to build out `app/` per the chosen engine guide. Part of the kickstart is creating the three entry-point scripts under `scripts/` — see the Layout section in the root `CLAUDE.md`. The first agent to build is the `concierge` — see the MVP section below.
 
-During scaffolding, also distill the prescriptive bits of the relevant guide(s) into the `app/*/CLAUDE.md` files. The guide stays as rationale; the `CLAUDE.md` becomes the live rulebook future-you reads when working in that subtree. Don't copy the guide wholesale — extract the rules, drop the alternatives discussion, and reference the guide for the *why*.
+During the kickstart, also distill the prescriptive bits of the relevant guide(s) into the `app/*/CLAUDE.md` files. The guide stays as rationale; the `CLAUDE.md` becomes the live rulebook future-you reads when working in that subtree. Don't copy the guide wholesale — extract the rules, drop the alternatives discussion, and reference the guide for the *why*.
 
 ## MVP — concierge agent
 
-When scaffolding the project, build a single first agent: the `concierge`. It is a friendly conversationalist whose role will grow into coordinating and orchestrating other agents as the agent roster expands. Future agents are added as **subagents dispatched by the concierge**, not peers — the user always has one conversation, and the concierge orchestrates internally (Claude Code's Task tool for `claude-code`; the SDK's `agents={}` for `agent-sdk`; a hand-rolled equivalent for `claude-api`).
+When kickstarting the project, build a single first agent: the `concierge`. It is a friendly conversationalist whose role will grow into coordinating and orchestrating other agents as the agent roster expands. Future agents are added as **subagents dispatched by the concierge**, not peers — the user always has one conversation, and the concierge orchestrates internally (Claude Code's Task tool for `claude-code`; the SDK's `agents={}` for `agent-sdk`; a hand-rolled equivalent for `claude-api`).
 
 Acceptance criteria differ by engine:
 
@@ -42,7 +42,7 @@ Implementation idiom is engine-specific — built-in `Glob` + `Read` may suffice
 
 ### System prompt
 
-The concierge's system prompt is authored during scaffolding (not shipped as a fixed template) so it can reflect the user's actual project. Compose it to cover these elements:
+The concierge's system prompt is authored during the kickstart (not shipped as a fixed template) so it can reflect the user's actual project. Compose it to cover these elements:
 
 - **Identity** — name (Concierge), role (friendly conversationalist + future orchestrator of other agents in this project), tone.
 - **Project context** — instruct the concierge to read the root `README.md` and `CLAUDE.md` at session start so it knows what this project is and what it's for.
@@ -52,6 +52,6 @@ The concierge's system prompt is authored during scaffolding (not shipped as a f
 
 Don't pad the prompt beyond these elements. A long system prompt is a slow, expensive prompt — extend it deliberately when a real need arises.
 
-## After scaffolding
+## After kickstart
 
-Once `app/` contains implementation code, scaffolding is done. The root `CLAUDE.md` becomes the steady-state instruction file; this `SCAFFOLDING.md` is no longer loaded into context on subsequent sessions. Your role shifts from kit facilitator to development collaborator on the project the user is now building.
+Once `app/` contains implementation code, the kickstart is done. The root `CLAUDE.md` becomes the steady-state instruction file; this `KICKSTART.md` is no longer loaded into context on subsequent sessions. Your role shifts from kit facilitator to development collaborator on the project the user is now building.

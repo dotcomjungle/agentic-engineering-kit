@@ -1,6 +1,6 @@
 # Client Stack Guide
 
-Recommended TypeScript/React stack for the frontend of a generated web project.
+Recommended TypeScript/React stack for the frontend of a web project built with this kit.
 
 **This guide only applies if you picked the `agent-sdk` or `claude-api` engine.** The `claude-code` engine doesn't ship a SPA — agents publish to a static Astro site under `app/site/` and there's nothing for a client of this shape to do.
 

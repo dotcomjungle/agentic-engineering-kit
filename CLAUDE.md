@@ -1,12 +1,12 @@
 # Agentic Engineering Kit
 
-A starting point / template for new agentic engineering projects.
+A starter kit for new agentic engineering projects.
 
 ## Role
 
 You are a development collaborator on the agentic engineering project that lives under `app/`. Read the project's `README.md` and any `CLAUDE.md` files within `app/` to understand what it is and how it's organized.
 
-**First-contact check:** if `app/` does not yet contain implementation code (only this kit's documentation stubs and rulebooks — no `package.json`, `pyproject.toml`, source files, or `app/agents/concierge/`), the project hasn't been scaffolded yet. Read `SCAFFOLDING.md` and follow its playbook before doing anything else. Once you see real implementation under `app/`, the scaffolding playbook is no longer relevant — proceed as a normal development collaborator.
+**First-contact check:** if `app/` does not yet contain implementation code (only this kit's documentation stubs and rulebooks — no `package.json`, `pyproject.toml`, source files, or `app/agents/concierge/`), the project hasn't been kickstarted yet. Read `KICKSTART.md` and follow its playbook before doing anything else. Once you see real implementation under `app/`, the kickstart playbook is no longer relevant — proceed as a normal development collaborator.
 
 ## Filename conventions
 
@@ -21,7 +21,7 @@ If a `README.md` and a `CLAUDE.md` appear to disagree on what you should do, `CL
 
 Two top-level concerns: **how to set the project up** (`guides/`) and **what the project becomes** (`app/`).
 
-### `guides/` — setup playbooks and stack recommendations
+### `guides/` — engine and stack guides
 
 - `guides/engines/` — three mutually exclusive playbooks for the agentic runtime. Pick one:
   - `guides/engines/claude-code/` — interact directly via the Claude Code CLI. Agents are defined as `app/agents/<name>/prompt.md`; artifacts are published as a static site under `app/site/` (Astro).
@@ -30,7 +30,7 @@ Two top-level concerns: **how to set the project up** (`guides/`) and **what the
 - `guides/client/` — recommended (default) frontend tech stack and a discussion of alternatives. **Applies to `agent-sdk` and `claude-api` engines only.**
 - `guides/server/` — recommended (default) backend tech stack (Python: FastAPI, SQLAlchemy 2.x async, Postgres, `uv`). **Applies to `agent-sdk` and `claude-api` engines only.**
 
-### `app/` — the generated project
+### `app/` — your project
 
 The shape of `app/` depends on which engine you picked:
 
@@ -46,7 +46,7 @@ The shape of `app/` depends on which engine you picked:
 
 ### `scripts/` — developer entry points
 
-The scripts here are the canonical entry points for working with the project — for humans and for you. They abstract over the engine choice so anyone can set up, run, and validate the project without knowing whether it's `uv` + `npm`, Astro, or something else underneath. **Create all three when scaffolding the project** and tailor each to the chosen engine — every engine has meaningful work for setup, start, and validate, so don't omit any of the three. When the run/test/build story changes during normal development, keep them in sync — a stale `validate.sh` is worse than none.
+The scripts here are the canonical entry points for working with the project — for humans and for you. They abstract over the engine choice so anyone can set up, run, and validate the project without knowing whether it's `uv` + `npm`, Astro, or something else underneath. **Create all three during kickstart** and tailor each to the chosen engine — every engine has meaningful work for setup, start, and validate, so don't omit any of the three. When the run/test/build story changes during normal development, keep them in sync — a stale `validate.sh` is worse than none.
 
 - **`scripts/setup.sh`** — install dependencies and run idempotent seeds. Must be safe to re-run: `uv sync`, `npm install`, `alembic upgrade head`, and any seed data that's keyed/upserted. A new contributor should be one command from a working environment.
 - **`scripts/start.sh`** — spin up all dev services and, when running interactively, open the app in the browser (skip the open if `$CI` is set or stdout isn't a TTY; use `open` on macOS, `xdg-open` elsewhere). For multi-service projects (`agent-sdk`, `claude-api`), start everything in parallel, **prefix each child's output with its service name** so interleaved logs stay readable (e.g. `npx concurrently --names server,client --prefix-colors blue,green ...`, or a `sed`-prefix per child), and ensure Ctrl-C cleans up children (`trap` + `wait`). For single-service projects (`claude-code`), this may just serve the static site.

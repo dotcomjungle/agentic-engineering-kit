@@ -11,7 +11,7 @@ This skill supports the `claude-code` engine only. Detect:
 
 - `app/agents/` exists (even if empty) → claude-code engine. Proceed.
 - `app/agents/` does not exist, but `app/server/` contains Python source (`pyproject.toml`, `*.py`) → `agent-sdk` or `claude-api` engine. Refuse: tell the user this skill only supports `claude-code` today and that adding agents to those engines is still manual.
-- `app/` contains only documentation stubs (`app/server/CLAUDE.md`, `app/client/CLAUDE.md`) and no implementation → project isn't scaffolded. Tell the user to read `SCAFFOLDING.md` and scaffold first.
+- `app/` contains only documentation stubs (`app/server/CLAUDE.md`, `app/client/CLAUDE.md`) and no implementation → project hasn't been kickstarted. Tell the user to read `KICKSTART.md` and kickstart first.
 
 ## 2. Determine the slug
 

@@ -1,6 +1,6 @@
 # Server Stack Guide
 
-Recommended Python stack for the backend server of a generated web app.
+Recommended Python stack for the backend server of a web app built with this kit.
 
 **This guide only applies if you picked the `agent-sdk` or `claude-api` engine.** The `claude-code` engine doesn't use `app/server/` at all — agents run in the CLI and produce artifacts (e.g. the static site under `app/site/`), so there's nothing for a server to do.
 

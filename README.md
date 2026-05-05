@@ -1,8 +1,8 @@
 # Agentic Engineering Kit
 
-A starting point / template for new agentic engineering projects.
+A starter kit for new agentic engineering projects.
 
-This repo is an opinionated scaffold and playbook for building software where Claude is part of the runtime. Pick an engine, follow the matching guide, end up with a project that has a consistent shape and well-justified default choices.
+This repo is an opinionated kit and playbook for building software where Claude is part of the runtime. Pick an engine, follow the matching guide, end up with a project that has a consistent shape and well-justified default choices.
 
 ## Pick an engine
 
@@ -25,13 +25,13 @@ The `claude-code` engine doesn't use `app/server/` or `app/client/` at all, so n
 
 ## How to use this kit
 
-This kit assumes you're working with Claude Code. The bulk of the setup is a dialogue, not a checklist — Claude Code reads `CLAUDE.md` on entry and is set up to facilitate the steps below.
+This kit assumes you're working with Claude Code. The bulk of the kickstart is a dialogue, not a checklist — Claude Code reads `CLAUDE.md` on entry and is set up to facilitate the steps below.
 
 1. Open the repo in Claude Code and discuss the engine options. The agent will ask about your goals and recommend one (or lay out the tradeoffs if it's a toss-up).
 2. With Claude Code, follow the chosen engine's guide. For `agent-sdk` or `claude-api`, also work through `guides/server/` and `guides/client/`.
-3. Collaborate with Claude Code to scaffold `app/` in the shape the engine prescribes.
+3. Collaborate with Claude Code to build out `app/` in the shape the engine prescribes.
 4. Once your project takes shape, replace this `README.md` with your own.
 
 ## Layout
 
-`CLAUDE.md` at the repo root has the canonical directory layout and is what Claude Code reads when working in this repo. The setup playbook (engine selection dialogue, scaffolding mechanics, MVP requirements) lives separately in `SCAFFOLDING.md`; Claude reads it conditionally on a fresh clone and ignores it once the project has been scaffolded.
+`CLAUDE.md` at the repo root has the canonical directory layout and is what Claude Code reads when working in this repo. The kickstart playbook (engine selection dialogue, build-out mechanics, MVP requirements) lives separately in `KICKSTART.md`; Claude reads it conditionally on a fresh clone and ignores it once the project has been kickstarted.
